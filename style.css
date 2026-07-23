@@ -1,64 +1,79 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>家計簿</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div class="app">
-  <div class="brand">
-    <h1>家計簿</h1>
-    <span id="today-label"></span>
-  </div>
-
-  <div class="ticket">
-    <div class="amount-block">
-      <div class="amount-label">金額</div>
-      <div class="amount-row">
-        <span>¥</span>
-        <input id="amount" type="number" inputmode="numeric" placeholder="0" min="0" step="1" required>
-      </div>
-    </div>
-
-    <div class="perf"></div>
-
-    <form id="entry-form">
-      <div class="fields">
-        <div class="field">
-          <label for="date">利用日</label>
-          <input id="date" type="date" required>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label for="category">分類</label>
-            <select id="category" required></select>
-          </div>
-          <div class="field">
-            <label for="payment">支払方法</label>
-            <select id="payment" required></select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="memo">メモ（任意）</label>
-          <input id="memo" type="text" placeholder="例）ラーメン">
-        </div>
-      </div>
-
-      <button type="submit" class="submit" id="submit-btn">登録する</button>
-      <div class="msg" id="msg"></div>
-      <div class="setup" id="setup-msg">
-        まだ保存先が設定されていません。<code>js/config.js</code>の<code>GAS_URL</code>にデプロイしたURLを貼り付けてください。
-      </div>
-    </form>
-  </div>
-</div>
-
-<script type="module" src="js/app.js"></script>
-</body>
-</html>
+:root{
+  --paper:#f4f0e6;
+  --card:#fffdf8;
+  --ink:#2b2620;
+  --ink-soft:#6b6155;
+  --line:#d8cfbd;
+  --accent:#c65d3b;
+  --radius:18px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:radial-gradient(circle at 20% 10%, #faf6ec 0%, var(--paper) 55%);
+  font-family:'Zen Kaku Gothic New', sans-serif;
+  color:var(--ink);
+  display:flex;
+  justify-content:center;
+  padding:28px 16px 60px;
+}
+.app{ width:100%; max-width:420px; }
+.brand{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:18px;
+  padding:0 4px;
+}
+.brand h1{ font-size:22px; font-weight:900; letter-spacing:.02em; margin:0; }
+.brand span{ font-size:12px; color:var(--ink-soft); font-family:'JetBrains Mono', monospace; }
+.ticket{
+  position:relative;
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:0 18px 40px -20px rgba(43,38,32,.35), 0 2px 0 rgba(43,38,32,.03);
+  padding:26px 22px 22px;
+  border:1px solid var(--line);
+}
+.perf{ position:relative; top:0; height:0; border-top:2px dashed var(--line); margin:0 -32px; }
+.amount-block{ text-align:center; padding-bottom:26px; }
+.amount-label{ font-size:11px; letter-spacing:.14em; color:var(--ink-soft); font-weight:700; margin-bottom:6px; }
+.amount-row{ display:flex; align-items:baseline; justify-content:center; gap:4px; }
+.amount-row span{ font-family:'JetBrains Mono', monospace; font-size:24px; color:var(--ink-soft); }
+#amount{
+  width:220px; border:none; background:transparent;
+  font-family:'JetBrains Mono', monospace; font-weight:700; font-size:42px;
+  text-align:center; color:var(--ink); outline:none;
+}
+#amount::placeholder{ color:#cfc4b2; }
+.fields{ padding-top:26px; display:flex; flex-direction:column; gap:16px; }
+.field label{ display:block; font-size:11px; letter-spacing:.1em; color:var(--ink-soft); font-weight:700; margin-bottom:6px; }
+.field select, .field input[type="date"], .field input[type="text"]{
+  width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line);
+  background:#fffefb; font-family:'Zen Kaku Gothic New', sans-serif; font-size:16px;
+  color:var(--ink); appearance:none; -webkit-appearance:none;
+}
+.field select{
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' stroke='%236b6155' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat; background-position:right 14px center; padding-right:36px;
+}
+.field select:focus, .field input:focus{ border-color:var(--accent); }
+.row2{ display:flex; gap:12px; }
+.row2 .field{ flex:1; }
+.submit{
+  margin-top:22px; width:100%; padding:16px; border:none; border-radius:12px;
+  background:var(--accent); color:#fff8f2; font-size:16px; font-weight:700;
+  letter-spacing:.05em; cursor:pointer; transition:transform .08s ease, opacity .2s ease;
+}
+.submit:active{ transform:scale(.98); }
+.submit:disabled{ opacity:.55; cursor:default; }
+.msg{ margin-top:14px; text-align:center; font-size:13px; font-weight:500; min-height:18px; }
+.msg.ok{ color:#4c7a5c; }
+.msg.err{ color:#b3423a; }
+.setup{
+  margin-top:16px; padding:12px 14px; background:#fff3e0; border:1px solid #f0d9c9;
+  border-radius:12px; font-size:12px; line-height:1.6; color:#7a5a2a; display:none;
+}
+.setup.show{ display:block; }
+.setup code{ background:#fff; padding:1px 5px; border-radius:5px; font-size:11px; }
