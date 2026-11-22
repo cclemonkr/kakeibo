@@ -1,64 +1,160 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>家計簿</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14243a">
+<title>家計簿｜月のお金を見える化</title>
+<style>
+:root{--bg:#f3f6fa;--card:#fff;--ink:#182334;--muted:#68778b;--line:#e5eaf1;--navy:#14243a;--blue:#3568d4;--green:#16845d;--red:#c54d56}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:var(--navy);color:#fff;padding:22px 18px 20px}header .wrap,main{max-width:980px;margin:auto}
+.kicker{font-size:12px;letter-spacing:.08em;color:#b9c8db}h1{font-size:23px;margin:5px 0 4px}header p{margin:0;color:#d4deeb;font-size:13px}
+main{padding:16px 14px 40px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+input,select,button{font:inherit}input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);min-width:0}
+button{border:0;border-radius:10px;padding:11px 14px;font-weight:650;cursor:pointer}
+.primary{background:var(--blue);color:#fff}.secondary{background:#e9eef7;color:#29415f}.danger{background:#fff0f0;color:var(--red)}
+.month{width:auto;min-width:155px;font-weight:650}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:0 2px 8px #18304a08}
+.metric-label{font-size:12px;color:var(--muted)}.metric{font-size:clamp(19px,3vw,26px);font-weight:750;margin-top:6px;letter-spacing:-.03em}.income{color:var(--green)}.expense{color:var(--red)}.balance{color:var(--blue)}
+.layout{display:grid;grid-template-columns:1.05fr .95fr;gap:12px;margin-bottom:14px}
+h2{font-size:16px;margin:0 0 12px}.sub{font-size:12px;color:var(--muted);margin-top:-6px;margin-bottom:12px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:600}.wide{grid-column:1/-1}
+.segment{display:flex;background:#eef2f7;padding:3px;border-radius:10px;gap:3px}.segment button{flex:1;background:transparent;color:var(--muted);padding:9px}.segment button.active{background:#fff;color:var(--ink);box-shadow:0 1px 4px #0001}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+.barrow{margin:11px 0}.barhead{display:flex;justify-content:space-between;font-size:13px;gap:8px}.track{height:8px;background:#edf1f6;border-radius:9px;margin-top:6px;overflow:hidden}.fill{height:100%;border-radius:9px;background:#5d83d9}
+.insight{background:#f5f8ff;border:1px solid #e1e9fb;border-radius:12px;padding:12px;font-size:13px;line-height:1.65}
+.listhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.list{display:flex;flex-direction:column;gap:8px}
+.entry{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.entry:last-child{border-bottom:0}
+.entry-main{min-width:0}.entry-title{font-size:14px;font-weight:650;overflow-wrap:anywhere}.entry-meta{font-size:11px;color:var(--muted);margin-top:3px}.entry-right{text-align:right;white-space:nowrap}.entry-amount{font-weight:750}.entry-buttons{display:flex;gap:5px;margin-top:4px;justify-content:flex-end}.entry-buttons button{font-size:11px;padding:5px 8px}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:22px 8px}
+.note{font-size:11px;color:var(--muted);line-height:1.55;margin-top:12px}
+.footer-tools{display:flex;gap:8px;flex-wrap:wrap}.footer-tools button{font-size:12px}
+#fileInput{display:none}.pill{display:inline-block;border-radius:99px;background:#eef2f7;color:#53647a;font-size:11px;padding:3px 8px}
+@media(max-width:720px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}.metric{font-size:22px}}
+@media(max-width:390px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.toolbar>*{flex:1}}
+</style>
 </head>
 <body>
-<div class="app">
-  <div class="brand">
-    <h1>家計簿</h1>
-    <span id="today-label"></span>
+<header><div class="wrap"><div class="kicker">PERSONAL FINANCE</div><h1>家計簿</h1><p>使ったお金を記録して、月のお金の流れを見える化。</p></div></header>
+<main>
+  <div class="toolbar">
+    <input class="month" id="month" type="month" aria-label="対象月">
+    <button class="secondary" id="prev">← 前月</button><button class="secondary" id="next">翌月 →</button>
+    <span class="pill" id="count">0件</span><button class="pill" id="sync" type="button" style="cursor:pointer">同期待ち</button>
   </div>
-
-  <div class="ticket">
-    <div class="amount-block">
-      <div class="amount-label">金額</div>
-      <div class="amount-row">
-        <span>¥</span>
-        <input id="amount" type="number" inputmode="numeric" placeholder="0" min="0" step="1" required>
-      </div>
+  <section class="grid">
+    <div class="card"><div class="metric-label">収入</div><div class="metric income" id="incomeTotal">¥0</div></div>
+    <div class="card"><div class="metric-label">支出</div><div class="metric expense" id="expenseTotal">¥0</div></div>
+    <div class="card"><div class="metric-label">収支</div><div class="metric balance" id="balanceTotal">¥0</div></div>
+    <div class="card"><div class="metric-label">支出件数</div><div class="metric" id="expenseCount">0件</div></div>
+  </section>
+  <section class="layout">
+    <div class="card">
+      <h2 id="formTitle">支出を記録</h2>
+      <div class="segment"><button id="expenseTab" class="active" type="button">支出</button><button id="incomeTab" type="button">収入</button></div>
+      <form id="entryForm">
+        <div class="formgrid" style="margin-top:10px">
+          <div class="field"><label for="date">日付</label><input id="date" type="date" required></div>
+          <div class="field"><label for="amount">金額（円）</label><input id="amount" type="number" min="1" step="1" placeholder="例：1280" required></div>
+          <div class="field"><label for="category">カテゴリ</label><select id="category"></select></div>
+          <div class="field"><label for="payment">支払方法</label><select id="payment"></select></div>
+          <div class="field wide"><label for="memo">メモ</label><input id="memo" type="text" maxlength="80" placeholder="例：昼食、給油"></div>
+        </div>
+        <div class="actions"><button class="primary" id="saveBtn" type="submit">記録する</button><button class="secondary" id="cancelEdit" type="button" hidden>編集をやめる</button></div>
+      </form>
+      <div class="note">入力したデータはGoogleスプレッドシートに保存されます。通信できないときは端末に一時保存し、つながり次第自動で送信します。</div>
     </div>
+    <div class="card">
+      <h2>今月の支出内訳</h2><div class="sub">カテゴリ別の支出額</div><div id="breakdown"></div>
+      <div class="note">金額の集計はアプリ内で計算しています。AIによる自動判断ではなく、記録データに基づく集計です。</div>
+    </div>
+  </section>
+  <section class="card" style="margin-bottom:14px">
+    <h2>家計チェック</h2>
+    <div class="formgrid">
+      <div class="field"><label for="monthlyBudget">月の支出目安（円）</label><input id="monthlyBudget" type="number" min="0" step="1000" placeholder="例：180000"></div>
+      <div class="field"><label for="targetSavings">今月の貯蓄目標（円）</label><input id="targetSavings" type="number" min="0" step="1000" placeholder="例：30000"></div>
+    </div>
+    <div class="actions"><button class="secondary" id="saveGoals" type="button">目標を保存</button></div>
+    <div id="insight" class="insight" style="margin-top:12px">記録が増えると、ここに今月の状況が表示されます。</div>
+  </section>
+  <section class="card">
+    <div class="listhead"><h2 style="margin:0">取引履歴</h2><select id="filter" style="width:auto"><option value="all">すべて</option><option value="expense">支出のみ</option><option value="income">収入のみ</option></select></div>
+    <div class="sub" style="margin-top:7px">選択中の月の記録。修正・削除もできます。</div><div class="list" id="entries"></div>
+  </section>
+  <section class="card" style="margin-top:14px">
+    <h2>データ管理</h2>
+    <div class="footer-tools">
+      <button class="secondary" id="openSheet">スプレッドシートを開く</button>
+      <button class="secondary" id="exportJson">全データをバックアップ</button>
+      <button class="secondary" id="exportCsv">表示月をCSV出力</button>
+      <button class="secondary" id="importBtn">バックアップを復元</button>
+      <button class="danger" id="clearMonth">表示月のデータを削除</button>
+      <input id="fileInput" type="file" accept=".json,application/json">
+    </div>
+    <div class="note">バックアップJSONは全記録・設定を含みます。CSVは表計算ソフトで確認できます。データ削除は取り消せません。削除前にバックアップしてください。</div>
+  </section>
+</main>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),KEY='kakeibo_v2_cache',QKEY='kakeibo_v2_queue';
+// ▼ Apps ScriptのウェブアプリURL / 合言葉（GAS側のTOKENと同じ値。使わないなら空）
+const GAS_URL='https://script.google.com/macros/s/AKfycbztw0o4p4pQTW411BRRGqjErYa3y-vbXhDiVQ0qiyJWTJ4SbzejMW0zJRhEUMiEvYPkMQ/exec',TOKEN='';
+const expenseCats=['食費','日用品','住居・寮費','車ローン','自動車保険','駐車場','ガソリン','車の維持費','交通・高速','通信','医療','交際・娯楽','衣服','サブスク','その他'];
+const incomeCats=['給与','賞与','通勤手当','返金・臨時収入','その他収入'];
+const payCats=['現金','Visa','Master','JCB','QUICPay','iD','PayPay','Suica','その他'];
+let db={entries:[],budget:0,savings:0},server={entries:[],budget:0,savings:0},queue=[],syncing=false,mode='expense',editing=null;
+const today=new Date(),ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('month').value=ymd(today).slice(0,7);$('date').value=ymd(today);
+const uid=()=>'k'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&Array.isArray(x.entries))server=x;queue=JSON.parse(localStorage.getItem(QKEY)||'[]')}catch(e){}view()}
+function persist(){localStorage.setItem(KEY,JSON.stringify(server));localStorage.setItem(QKEY,JSON.stringify(queue))}
+function applyOp(t,o){if(o.op==='upsert'){const i=t.entries.findIndex(e=>e.id===o.entry.id);i>=0?t.entries[i]=o.entry:t.entries.push(o.entry)}else if(o.op==='delete')t.entries=t.entries.filter(e=>!o.ids.includes(e.id));else if(o.op==='settings'){t.budget=o.budget;t.savings=o.savings}else if(o.op==='replaceAll'){t.entries=o.entries.slice();t.budget=o.budget;t.savings=o.savings}}
+function view(){db=JSON.parse(JSON.stringify(server));queue.forEach(o=>applyOp(db,o))}
+function push(o){queue.push(o);persist();view();render();sync()}
+async function call(body){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);try{const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:TOKEN}),signal:c.signal});const d=await r.json();if(d.result!=='ok')throw Error(d.message||'error');return d}finally{clearTimeout(t)}}
+function status(t,c){$('sync').textContent=t;$('sync').style.color=c||''}
+async function sync(){if(syncing)return;syncing=true;status('同期中…');try{const n=queue.length,d=await call({action:n?'batch':'list',ops:queue.slice(0,n)});queue.splice(0,n);server={entries:d.entries,budget:d.budget,savings:d.savings,sheetUrl:d.sheetUrl};persist();view();render();status(queue.length?'未送信'+queue.length+'件':'✓ 同期済み','var(--green)');if(queue.length)setTimeout(sync,0)}catch(e){persist();status('⚠ 未同期'+(queue.length?queue.length+'件':'')+'（タップで再試行）','var(--red)')}finally{syncing=false}}
 
-    <div class="perf"></div>
-
-    <form id="entry-form">
-      <div class="fields">
-        <div class="field">
-          <label for="date">利用日</label>
-          <input id="date" type="date" required>
-        </div>
-
-        <div class="row2">
-          <div class="field">
-            <label for="category">分類</label>
-            <select id="category" required></select>
-          </div>
-          <div class="field">
-            <label for="payment">支払方法</label>
-            <select id="payment" required></select>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="memo">メモ（任意）</label>
-          <input id="memo" type="text" placeholder="例）ラーメン">
-        </div>
-      </div>
-
-      <button type="submit" class="submit" id="submit-btn">登録する</button>
-      <div class="msg" id="msg"></div>
-      <div class="setup" id="setup-msg">
-        まだ保存先が設定されていません。<code>js/config.js</code>の<code>GAS_URL</code>にデプロイしたURLを貼り付けてください。
-      </div>
-    </form>
-  </div>
-</div>
-
-<script type="module" src="js/app.js"></script>
-</body>
-</html>
+function yen(n){return new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n||0)}
+function monthEntries(){return db.entries.filter(e=>e.date.startsWith($('month').value))}
+function setMode(m){mode=m;$('expenseTab').classList.toggle('active',m==='expense');$('incomeTab').classList.toggle('active',m==='income');$('formTitle').textContent=m==='expense'?'支出を記録':'収入を記録';$('saveBtn').textContent=editing?'変更を保存':'記録する';$('category').innerHTML=(m==='expense'?expenseCats:incomeCats).map(c=>`<option>${c}</option>`).join('');$('payment').parentNode.style.display=m==='income'?'none':''}
+function resetForm(){editing=null;$('entryForm').reset();$('date').value=ymd(today);$('cancelEdit').hidden=true;setMode('expense')}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){
+ const es=monthEntries(),inc=es.filter(e=>e.type==='income').reduce((a,e)=>a+e.amount,0),out=es.filter(e=>e.type==='expense').reduce((a,e)=>a+e.amount,0);
+ $('incomeTotal').textContent=yen(inc);$('expenseTotal').textContent=yen(out);$('balanceTotal').textContent=yen(inc-out);$('balanceTotal').style.color=inc-out<0?'var(--red)':'var(--blue)';$('expenseCount').textContent=es.filter(e=>e.type==='expense').length+'件';$('count').textContent=es.length+'件';
+ const sums={};es.filter(e=>e.type==='expense').forEach(e=>sums[e.category]=(sums[e.category]||0)+e.amount);
+ const cats=Object.entries(sums).sort((a,b)=>b[1]-a[1]);$('breakdown').innerHTML=cats.length?cats.map(([c,v])=>`<div class="barrow"><div class="barhead"><span>${esc(c)}</span><b>${yen(v)}</b></div><div class="track"><div class="fill" style="width:${out?Math.max(2,v/out*100):0}%"></div></div></div>`).join(''):'<div class="empty">まだ支出の記録がありません。</div>';
+ const budget=Number(db.budget)||0,savings=Number(db.savings)||0,remaining=budget-out;
+ let msg=`今月の支出は<strong>${yen(out)}</strong>、収入は<strong>${yen(inc)}</strong>、収支は<strong>${yen(inc-out)}</strong>です。`;
+ if(budget>0)msg+=remaining>=0?` 支出目安まで<strong>${yen(remaining)}</strong>あります。`:` 支出目安を<strong>${yen(-remaining)}</strong>超えています。`;
+ if(savings>0)msg+=` 貯蓄目標は<strong>${yen(savings)}</strong>。収支が目標に届いているか確認しましょう。`;
+ if(cats.length){const [top,val]=cats[0];msg+=` 最も大きい支出カテゴリは<strong>${esc(top)}</strong>（${yen(val)}、支出の${Math.round(val/Math.max(out,1)*100)}%）です。`}
+ msg+=' 記録漏れがあると分析もずれるので、現金・カード・口座引落をまとめて入力してね。';$('insight').innerHTML=msg;
+ const pend=new Set(queue.flatMap(o=>o.op==='upsert'?[o.entry.id]:[])),filter=$('filter').value,rows=es.filter(e=>filter==='all'||e.type===filter).sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
+ $('entries').innerHTML=rows.length?rows.map(e=>`<div class="entry"><div class="entry-main"><div class="entry-title">${esc(e.memo||e.category)}</div><div class="entry-meta">${e.date} ・ ${esc(e.category)} ・ ${e.type==='income'?'収入':'支出'}${e.payment&&e.type==='expense'?' ・ '+esc(e.payment):''}${pend.has(e.id)?' ・ ⏳未送信':''}</div></div><div class="entry-right"><div class="entry-amount ${e.type==='income'?'income':'expense'}">${e.type==='income'?'+':'−'}${yen(e.amount)}</div><div class="entry-buttons"><button class="secondary" data-edit="${e.id}">編集</button><button class="danger" data-del="${e.id}">削除</button></div></div></div>`).join(''):'<div class="empty">この月の記録はありません。まずは1件入力してみよう。</div>';
+ [['monthlyBudget','budget'],['targetSavings','savings']].forEach(([i,k])=>{if(document.activeElement!==$(i))$(i).value=db[k]||''});
+}
+$('expenseTab').onclick=()=>setMode('expense');$('incomeTab').onclick=()=>setMode('income');
+$('entryForm').onsubmit=e=>{e.preventDefault();const amount=Math.round(Number($('amount').value));if(!Number.isFinite(amount)||amount<=0)return alert('金額を正しく入力してください。');const obj={id:editing??uid(),date:$('date').value,type:mode,category:$('category').value,amount,payment:mode==='expense'?$('payment').value:'',memo:$('memo').value.trim()};push({op:'upsert',entry:obj});$('month').value=obj.date.slice(0,7);resetForm();render()};
+$('cancelEdit').onclick=resetForm;
+$('entries').onclick=e=>{const ed=e.target.dataset.edit,del=e.target.dataset.del;if(ed){const x=db.entries.find(z=>z.id==ed);if(!x)return;editing=x.id;mode=x.type;setMode(mode);$('date').value=x.date;$('amount').value=x.amount;if(![...$('category').options].some(o=>o.value===x.category))$('category').add(new Option(x.category));$('category').value=x.category;$('payment').value=x.payment||'現金';$('memo').value=x.memo||'';$('formTitle').textContent='記録を編集';$('saveBtn').textContent='変更を保存';$('cancelEdit').hidden=false;window.scrollTo({top:0,behavior:'smooth'})}if(del){if(!confirm('この記録を削除しますか？'))return;push({op:'delete',ids:[del]})}};
+$('month').onchange=render;$('filter').onchange=render;
+function shiftMonth(n){const [y,m]=$('month').value.split('-').map(Number),d=new Date(y,m-1+n,1);$('month').value=ymd(d).slice(0,7);render()}
+$('prev').onclick=()=>shiftMonth(-1);$('next').onclick=()=>shiftMonth(1);
+$('saveGoals').onclick=()=>{push({op:'settings',budget:Math.max(0,Number($('monthlyBudget').value)||0),savings:Math.max(0,Number($('targetSavings').value)||0)});alert('目標を保存しました。')};
+function download(name,content,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportJson').onclick=()=>download(`家計簿バックアップ_${ymd(today)}.json`,JSON.stringify(db,null,2),'application/json');
+$('exportCsv').onclick=()=>{const rows=[['日付','区分','カテゴリ','支払方法','金額','メモ'],...monthEntries().map(e=>[e.date,e.type==='income'?'収入':'支出',e.category,e.payment||'',e.amount,e.memo||''])];const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');download(`家計簿_${$('month').value}.csv`,csv,'text/csv;charset=utf-8')};
+$('importBtn').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x||!Array.isArray(x.entries))throw Error();if(!confirm('現在のデータをバックアップ内容で置き換えます。よろしいですか？'))return;push({op:'replaceAll',entries:x.entries.map(e=>({...e,id:String(e.id||uid())})),budget:x.budget||0,savings:x.savings||0});alert('復元しました。')}catch(err){alert('バックアップJSONを読み込めませんでした。')}e.target.value=''};
+$('clearMonth').onclick=()=>{const m=$('month').value,n=monthEntries().length;if(!n)return alert('削除する記録がありません。');if(!confirm(`${m}の${n}件をすべて削除します。この操作は取り消せません。続けますか？`))return;push({op:'delete',ids:monthEntries().map(e=>e.id)})};
+$('payment').innerHTML=payCats.map(c=>`<option>${c}</option>`).join('');
+$('sync').onclick=sync;$('openSheet').onclick=()=>server.sheetUrl?open(server.sheetUrl):alert('同期が完了すると開けます。');
+addEventListener('online',sync);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+load();setMode('expense');render();sync();
+})();
+</script>
+</body></html>
