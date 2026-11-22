@@ -43,7 +43,7 @@ input,select{height:44px}input[type=date],input[type=month]{-webkit-appearance:n
   <div class="toolbar">
     <input class="month" id="month" type="month" aria-label="対象月">
     <button class="secondary" id="prev">← 前月</button><button class="secondary" id="next">翌月 →</button>
-    <span class="pill" id="count">0件</span><button class="pill" id="sync" type="button" style="cursor:pointer">同期待ち</button>
+    <span class="pill" id="count">0件</span><button class="pill" id="sync" type="button" style="cursor:pointer;white-space:normal;text-align:left">同期待ち</button>
   </div>
   <section class="grid">
     <div class="card"><div class="metric-label">収入</div><div class="metric income" id="incomeTotal">¥0</div></div>
@@ -104,7 +104,7 @@ input,select{height:44px}input[type=date],input[type=month]{-webkit-appearance:n
 (()=>{
 const $=id=>document.getElementById(id),KEY='kakeibo_v2_cache',QKEY='kakeibo_v2_queue';
 // ▼ Apps ScriptのウェブアプリURL / 合言葉（GAS側のTOKENと同じ値。使わないなら空）
-const GAS_URL='https://script.google.com/macros/s/AKfycbzcguUKlEn5_LxNTwRZwlXUlxoq6xgs6lrKZZVqPGSIlYY1ilvXO9C-KJ65jJhQqvVJ/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbztw0o4p4pQTW411BRRGqjErYa3y-vbXhDiVQ0qiyJWTJ4SbzejMW0zJRhEUMiEvYPkMQ/exec',TOKEN='';
 const expenseCats=['食費','日用品','住居・寮費','車ローン','自動車保険','駐車場','ガソリン','車の維持費','交通・高速','通信','医療','交際・娯楽','衣服','サブスク','その他'];
 const incomeCats=['給与','賞与','通勤手当','返金・臨時収入','その他収入'];
 const payCats=['現金','Visa','Master','JCB','QUICPay','iD','PayPay','Suica','その他'];
@@ -119,7 +119,7 @@ function view(){db=JSON.parse(JSON.stringify(server));queue.forEach(o=>applyOp(d
 function push(o){queue.push(o);persist();view();render();sync()}
 async function call(body){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);try{const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:TOKEN}),signal:c.signal});const d=await r.json();if(d.result!=='ok')throw Error(d.message||'error');return d}finally{clearTimeout(t)}}
 function status(t,c){$('sync').textContent=t;$('sync').style.color=c||''}
-async function sync(){if(syncing)return;syncing=true;status('同期中…');try{const n=queue.length,d=await call({action:n?'batch':'list',ops:queue.slice(0,n)});queue.splice(0,n);server={entries:d.entries,budget:d.budget,savings:d.savings,opening:d.opening,sheetUrl:d.sheetUrl};persist();view();render();status(queue.length?'未送信'+queue.length+'件':'✓ 同期済み','var(--green)');if(queue.length)setTimeout(sync,0)}catch(e){persist();status('⚠ 未同期'+(queue.length?queue.length+'件':'')+'（タップで再試行）','var(--red)')}finally{syncing=false}}
+async function sync(){if(syncing)return;syncing=true;status('同期中…');try{const n=queue.length,d=await call({action:n?'batch':'list',ops:queue.slice(0,n)});queue.splice(0,n);server={entries:d.entries,budget:d.budget,savings:d.savings,opening:d.opening,sheetUrl:d.sheetUrl};persist();view();render();status(queue.length?'未送信'+queue.length+'件':'✓ 同期済み','var(--green)');if(queue.length)setTimeout(sync,0)}catch(e){persist();status('⚠ 未同期：'+(e.name==='AbortError'?'時間切れ':e.message)+(queue.length?'（'+queue.length+'件）':'')+' ※タップで再試行','var(--red)')}finally{syncing=false}}
 
 function yen(n){return new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n||0)}
 function monthEntries(){return db.entries.filter(e=>e.date.startsWith($('month').value))}
