@@ -33,6 +33,8 @@ h2{font-size:16px;margin:0 0 12px}.sub{font-size:12px;color:var(--muted);margin-
 #fileInput{display:none}.pill{display:inline-block;border-radius:99px;background:#eef2f7;color:#53647a;font-size:11px;padding:3px 8px}
 @media(max-width:720px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout{grid-template-columns:1fr}.metric{font-size:22px}}
 @media(max-width:390px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.toolbar>*{flex:1}}
+input,select{height:44px}input[type=date],input[type=month]{-webkit-appearance:none;appearance:none;text-align:left;line-height:1.2;display:block}
+::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
 </style>
 </head>
 <body>
@@ -72,11 +74,13 @@ h2{font-size:16px;margin:0 0 12px}.sub{font-size:12px;color:var(--muted);margin-
   </section>
   <section class="card" style="margin-bottom:14px">
     <h2>家計チェック</h2>
+    <div id="balanceNow" class="insight" style="margin-bottom:12px"></div>
     <div class="formgrid">
       <div class="field"><label for="monthlyBudget">月の支出目安（円）</label><input id="monthlyBudget" type="number" min="0" step="1000" placeholder="例：180000"></div>
       <div class="field"><label for="targetSavings">今月の貯蓄目標（円）</label><input id="targetSavings" type="number" min="0" step="1000" placeholder="例：30000"></div>
+      <div class="field wide"><label for="openingBalance">開始残高（預金の最初の残高・円）</label><input id="openingBalance" type="number" step="1" placeholder="例：500000"></div>
     </div>
-    <div class="actions"><button class="secondary" id="saveGoals" type="button">目標を保存</button></div>
+    <div class="actions"><button class="secondary" id="saveGoals" type="button">目標・開始残高を保存</button></div>
     <div id="insight" class="insight" style="margin-top:12px">記録が増えると、ここに今月の状況が表示されます。</div>
   </section>
   <section class="card">
@@ -110,12 +114,12 @@ $('month').value=ymd(today).slice(0,7);$('date').value=ymd(today);
 const uid=()=>'k'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&Array.isArray(x.entries))server=x;queue=JSON.parse(localStorage.getItem(QKEY)||'[]')}catch(e){}view()}
 function persist(){localStorage.setItem(KEY,JSON.stringify(server));localStorage.setItem(QKEY,JSON.stringify(queue))}
-function applyOp(t,o){if(o.op==='upsert'){const i=t.entries.findIndex(e=>e.id===o.entry.id);i>=0?t.entries[i]=o.entry:t.entries.push(o.entry)}else if(o.op==='delete')t.entries=t.entries.filter(e=>!o.ids.includes(e.id));else if(o.op==='settings'){t.budget=o.budget;t.savings=o.savings}else if(o.op==='replaceAll'){t.entries=o.entries.slice();t.budget=o.budget;t.savings=o.savings}}
+function applyOp(t,o){if(o.op==='upsert'){const i=t.entries.findIndex(e=>e.id===o.entry.id);i>=0?t.entries[i]=o.entry:t.entries.push(o.entry)}else if(o.op==='delete')t.entries=t.entries.filter(e=>!o.ids.includes(e.id));else if(o.op==='settings'){t.budget=o.budget;t.savings=o.savings;t.opening=o.opening}else if(o.op==='replaceAll'){t.entries=o.entries.slice();t.budget=o.budget;t.savings=o.savings;t.opening=o.opening}}
 function view(){db=JSON.parse(JSON.stringify(server));queue.forEach(o=>applyOp(db,o))}
 function push(o){queue.push(o);persist();view();render();sync()}
 async function call(body){const c=new AbortController(),t=setTimeout(()=>c.abort(),25000);try{const r=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...body,token:TOKEN}),signal:c.signal});const d=await r.json();if(d.result!=='ok')throw Error(d.message||'error');return d}finally{clearTimeout(t)}}
 function status(t,c){$('sync').textContent=t;$('sync').style.color=c||''}
-async function sync(){if(syncing)return;syncing=true;status('同期中…');try{const n=queue.length,d=await call({action:n?'batch':'list',ops:queue.slice(0,n)});queue.splice(0,n);server={entries:d.entries,budget:d.budget,savings:d.savings,sheetUrl:d.sheetUrl};persist();view();render();status(queue.length?'未送信'+queue.length+'件':'✓ 同期済み','var(--green)');if(queue.length)setTimeout(sync,0)}catch(e){persist();status('⚠ 未同期'+(queue.length?queue.length+'件':'')+'（タップで再試行）','var(--red)')}finally{syncing=false}}
+async function sync(){if(syncing)return;syncing=true;status('同期中…');try{const n=queue.length,d=await call({action:n?'batch':'list',ops:queue.slice(0,n)});queue.splice(0,n);server={entries:d.entries,budget:d.budget,savings:d.savings,opening:d.opening,sheetUrl:d.sheetUrl};persist();view();render();status(queue.length?'未送信'+queue.length+'件':'✓ 同期済み','var(--green)');if(queue.length)setTimeout(sync,0)}catch(e){persist();status('⚠ 未同期'+(queue.length?queue.length+'件':'')+'（タップで再試行）','var(--red)')}finally{syncing=false}}
 
 function yen(n){return new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n||0)}
 function monthEntries(){return db.entries.filter(e=>e.date.startsWith($('month').value))}
@@ -135,7 +139,9 @@ function render(){
  msg+=' 記録漏れがあると分析もずれるので、現金・カード・口座引落をまとめて入力してね。';$('insight').innerHTML=msg;
  const pend=new Set(queue.flatMap(o=>o.op==='upsert'?[o.entry.id]:[])),filter=$('filter').value,rows=es.filter(e=>filter==='all'||e.type===filter).sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
  $('entries').innerHTML=rows.length?rows.map(e=>`<div class="entry"><div class="entry-main"><div class="entry-title">${esc(e.memo||e.category)}</div><div class="entry-meta">${e.date} ・ ${esc(e.category)} ・ ${e.type==='income'?'収入':'支出'}${e.payment&&e.type==='expense'?' ・ '+esc(e.payment):''}${pend.has(e.id)?' ・ ⏳未送信':''}</div></div><div class="entry-right"><div class="entry-amount ${e.type==='income'?'income':'expense'}">${e.type==='income'?'+':'−'}${yen(e.amount)}</div><div class="entry-buttons"><button class="secondary" data-edit="${e.id}">編集</button><button class="danger" data-del="${e.id}">削除</button></div></div></div>`).join(''):'<div class="empty">この月の記録はありません。まずは1件入力してみよう。</div>';
- [['monthlyBudget','budget'],['targetSavings','savings']].forEach(([i,k])=>{if(document.activeElement!==$(i))$(i).value=db[k]||''});
+ [['monthlyBudget','budget'],['targetSavings','savings'],['openingBalance','opening']].forEach(([i,k])=>{if(document.activeElement!==$(i))$(i).value=db[k]||''});
+ const bal=(Number(db.opening)||0)+db.entries.reduce((a,e)=>a+(e.type==='income'?e.amount:-e.amount),0);
+ $('balanceNow').innerHTML=`現在の預金残高 <strong style="font-size:20px">${yen(bal)}</strong><br>開始残高 ${yen(db.opening)} ＋ 全期間の収入 − 全期間の支出`;
 }
 $('expenseTab').onclick=()=>setMode('expense');$('incomeTab').onclick=()=>setMode('income');
 $('entryForm').onsubmit=e=>{e.preventDefault();const amount=Math.round(Number($('amount').value));if(!Number.isFinite(amount)||amount<=0)return alert('金額を正しく入力してください。');const obj={id:editing??uid(),date:$('date').value,type:mode,category:$('category').value,amount,payment:mode==='expense'?$('payment').value:'',memo:$('memo').value.trim()};push({op:'upsert',entry:obj});$('month').value=obj.date.slice(0,7);resetForm();render()};
@@ -144,12 +150,12 @@ $('entries').onclick=e=>{const ed=e.target.dataset.edit,del=e.target.dataset.del
 $('month').onchange=render;$('filter').onchange=render;
 function shiftMonth(n){const [y,m]=$('month').value.split('-').map(Number),d=new Date(y,m-1+n,1);$('month').value=ymd(d).slice(0,7);render()}
 $('prev').onclick=()=>shiftMonth(-1);$('next').onclick=()=>shiftMonth(1);
-$('saveGoals').onclick=()=>{push({op:'settings',budget:Math.max(0,Number($('monthlyBudget').value)||0),savings:Math.max(0,Number($('targetSavings').value)||0)});alert('目標を保存しました。')};
+$('saveGoals').onclick=()=>{push({op:'settings',budget:Math.max(0,Number($('monthlyBudget').value)||0),savings:Math.max(0,Number($('targetSavings').value)||0),opening:Math.round(Number($('openingBalance').value)||0)});alert('保存しました。')};
 function download(name,content,type){const a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 $('exportJson').onclick=()=>download(`家計簿バックアップ_${ymd(today)}.json`,JSON.stringify(db,null,2),'application/json');
 $('exportCsv').onclick=()=>{const rows=[['日付','区分','カテゴリ','支払方法','金額','メモ'],...monthEntries().map(e=>[e.date,e.type==='income'?'収入':'支出',e.category,e.payment||'',e.amount,e.memo||''])];const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');download(`家計簿_${$('month').value}.csv`,csv,'text/csv;charset=utf-8')};
 $('importBtn').onclick=()=>$('fileInput').click();
-$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x||!Array.isArray(x.entries))throw Error();if(!confirm('現在のデータをバックアップ内容で置き換えます。よろしいですか？'))return;push({op:'replaceAll',entries:x.entries.map(e=>({...e,id:String(e.id||uid())})),budget:x.budget||0,savings:x.savings||0});alert('復元しました。')}catch(err){alert('バックアップJSONを読み込めませんでした。')}e.target.value=''};
+$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x||!Array.isArray(x.entries))throw Error();if(!confirm('現在のデータをバックアップ内容で置き換えます。よろしいですか？'))return;push({op:'replaceAll',entries:x.entries.map(e=>({...e,id:String(e.id||uid())})),budget:x.budget||0,savings:x.savings||0,opening:x.opening||0});alert('復元しました。')}catch(err){alert('バックアップJSONを読み込めませんでした。')}e.target.value=''};
 $('clearMonth').onclick=()=>{const m=$('month').value,n=monthEntries().length;if(!n)return alert('削除する記録がありません。');if(!confirm(`${m}の${n}件をすべて削除します。この操作は取り消せません。続けますか？`))return;push({op:'delete',ids:monthEntries().map(e=>e.id)})};
 $('payment').innerHTML=payCats.map(c=>`<option>${c}</option>`).join('');
 $('sync').onclick=sync;$('openSheet').onclick=()=>server.sheetUrl?open(server.sheetUrl):alert('同期が完了すると開けます。');
